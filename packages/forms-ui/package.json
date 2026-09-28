@@ -1,0 +1,46 @@
+{
+  "name": "@emdash-forms/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist",
+    "src",
+    "bin",
+    "bin-dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./admin": "./src/admin.tsx",
+    "./astro": "./src/astro/index.ts",
+    "./Form": "./src/astro/Form.astro"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.bin.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@emdash-forms/engine": "workspace:*",
+    "@json-render/core": "0.21.0",
+    "@json-render/react": "0.21.0",
+    "zod": "4.5.4",
+    "@cloudflare/kumo": "2.6.0",
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "emdash": "0.42.x",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/react": "^19.0.0"
+  },
+  "bin": {
+    "emdash-forms": "./bin-dist/setup.js"
+  }
+}

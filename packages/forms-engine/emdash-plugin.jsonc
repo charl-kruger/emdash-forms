@@ -1,0 +1,44 @@
+// Development identity only. Configure verified publisher metadata before a release.
+{
+  "$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
+  "slug": "forms-engine",
+  "publisher": "did:web:development.invalid",
+  "license": "MIT",
+  "author": {
+    "name": "Local development fixture"
+  },
+  "security": {
+    "url": "https://development.invalid/security"
+  },
+  "name": "Forms engine",
+  "description": "Sandboxed form definitions, submissions and agent tools. Local development build.",
+  "capabilities": [
+    "email:send"
+  ],
+  "allowedHosts": [],
+  "admin": { "pages": [{ "path": "/forms", "label": "Forms", "icon": "notepad" }] },
+  "storage": {
+    "forms": {
+      "indexes": [
+        "status",
+        "updatedAt"
+      ]
+    },
+    "entries": {
+      "indexes": [
+        "formId",
+        "createdAt",
+        "status",
+        [
+          "formId",
+          "createdAt"
+        ]
+      ]
+    },
+    "tickets": {
+      "indexes": [
+        "expiresAt"
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "emdash-forms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "forms:build": "pnpm --filter @emdash-forms/engine build && pnpm --filter @emdash-forms/ui build",
+    "forms:test": "pnpm --filter @emdash-forms/engine test",
+    "forms:check": "pnpm --filter @emdash-forms/engine typecheck && pnpm --filter @emdash-forms/ui typecheck"
+  }
+}

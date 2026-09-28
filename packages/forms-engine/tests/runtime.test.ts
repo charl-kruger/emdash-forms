@@ -1,0 +1,25 @@
+import { afterEach, expect, it } from "vitest";
+import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
+import { templates } from "../src/templates";
+let host: PluginRuntimeTestHost | undefined;
+afterEach(async () => { await host?.dispose(); host = undefined; });
+it("enforces private route permissions and CSRF, and validates Block Kit", async () => {
+  host = await createPluginRuntimeTestHost();
+  const admin = await host.fixtures.user({ email: "admin@example.test", role: "admin" });
+  const viewer = await host.fixtures.user({ email: "reader@example.test", role: "subscriber" });
+  const template = templates.find(t => t.id === "contact");
+  if (!template) throw new Error("Missing contact template");
+  const body = { definition: template.definition };
+  expect((await host.actions.routes.request("create", { method: "POST", body })).status).toBe(401);
+  expect((await host.actions.routes.request("create", { method: "POST", body, user: viewer, headers: { "X-EmDash-Request": "1" } })).status).toBe(403);
+  expect((await host.actions.routes.request("create", { method: "POST", body, user: admin })).status).toBe(403);
+  const created = await host.actions.routes.request("create", { method: "POST", body, user: admin, headers: { "X-EmDash-Request": "1" } });
+  expect(created.status).toBe(200);
+  expect(await created.json()).toMatchObject({ success: true, data: { ok: true } });
+  expect((await host.actions.routes.request("info", { method: "GET" })).status).toBe(200);
+  expect((await host.actions.routes.request("create", { method: "GET", user: admin, headers: { "X-EmDash-Request": "1" } })).status).toBe(405);
+  const page = await host.admin.loadPage("/forms", { user: admin });
+  expect(page.blocks[0]).toMatchObject({ type: "header", text: "Forms" });
+  const detail = await host.admin.act("/forms", "create:feedback", { user: admin });
+  expect(detail.blocks[0]).toMatchObject({ type: "header", text: "Tell us what you think" });
+});

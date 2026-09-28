@@ -1,0 +1,47 @@
+{
+  "name": "@emdash-forms/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
+    },
+    "./sandbox": "./dist/plugin.mjs",
+    "./schema": "./src/schema.ts",
+    "./templates": "./src/templates.ts"
+  },
+  "files": [
+    "dist",
+    "emdash-plugin.jsonc",
+    "src/schema.ts",
+    "src/templates.ts"
+  ],
+  "scripts": {
+    "validate": "emdash-plugin validate",
+    "build": "emdash-plugin build",
+    "dev": "emdash-plugin dev",
+    "typecheck": "tsc --noEmit",
+    "test": "emdash-plugin validate && vitest run",
+    "bundle": "emdash-plugin bundle",
+    "login": "emdash-plugin login",
+    "publish": "node -e \"throw new Error('Configure a real publisher and security contact before release')\"",
+    "release:setup": "emdash-plugin release setup"
+  },
+  "peerDependencies": {
+    "emdash": "0.42.x"
+  },
+  "devDependencies": {
+    "@emdash-cms/plugin-cli": "0.13.1",
+    "@emdash-cms/plugin-test": "0.2.5",
+    "emdash": "0.42.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10",
+    "@emdash-cms/blocks": "0.42.0"
+  },
+  "dependencies": {
+    "zod": "4.5.4"
+  }
+}
