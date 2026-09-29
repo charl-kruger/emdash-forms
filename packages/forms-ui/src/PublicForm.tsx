@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { z } from "zod";
-import { calculated, definitionSchema, visible, validateAnswers } from "@emdash-forms/engine/schema";
-import type { Answer, Answers, Field, FormDefinition } from "@emdash-forms/engine/schema";
+import { calculated, definitionSchema, visible, validateAnswers } from "@emdash-forms/plugin/schema";
+import type { Answer, Answers, Field, FormDefinition } from "@emdash-forms/plugin/schema";
 import { connect, FormsError, message, request } from "./client";
 import "./styles.css";
 
@@ -42,14 +42,22 @@ function normalized(form: FormDefinition, input: Answers): Answers {
   return result;
 }
 export function FormPreview({ definition }: { definition: FormDefinition }) {
-  return <div className="forms-public fs-preview"><h2>{definition.title}</h2><p>{definition.description}</p><div className="fs-grid">{definition.fields.map(f => <FieldInput key={f.id} field={f} value={undefined} onChange={() => {}} preview />)}</div><button type="button" disabled className="fs-primary">{definition.settings.submitLabel}</button></div>;
+  const [viewport, setViewport] = useState("desktop");
+  const [session, setSession] = useState(0);
+  return <section className="fs-preview" aria-label="Interactive form preview">
+    <div className="fs-preview-toolbar"><div role="group" aria-label="Preview size">
+      {["desktop", "mobile"].map(size => <button type="button" key={size} aria-pressed={viewport === size} className="fs-secondary" onClick={() => setViewport(size)}>{size === "desktop" ? "Desktop" : "Mobile"}</button>)}
+    </div><button type="button" className="fs-text-button" onClick={() => setSession(s => s + 1)}>Reset preview</button></div>
+    <p className="fs-muted">Try your form. Validation, calculations and conditions are live. No responses are saved or emails sent.</p>
+    <div className={`fs-preview-device fs-preview-${viewport}`}><PublicForm key={session} formId="preview" previewDefinition={definition} /></div>
+  </section>;
 }
-export default function PublicForm({ formId }: { formId: string }) {
+export default function PublicForm({ formId, previewDefinition }: { formId: string; previewDefinition?: FormDefinition }) {
   const [loaded, setLoaded] = useState<{ form: FormDefinition; engine: string; ticket: string }>();
   const [error, setError] = useState(""); const [answers, setAnswers] = useState<Answers>({});
   const [errors, setErrors] = useState<Record<string,string>>({}); const [step,setStep] = useState(0);
   const [busy,setBusy] = useState(false); const [complete,setComplete] = useState(false); const website = useRef<HTMLInputElement>(null);
-  useEffect(() => { let active = true; void (async () => {
+  useEffect(() => { if (previewDefinition) { setLoaded({ form: previewDefinition, engine: "", ticket: "" }); return; } let active = true; void (async () => {
     try {
       const engine = await connect();
       const response = await request(engine,"definition",{ id: formId },z.object({ definition: definitionSchema, version: z.number() }),true);
@@ -57,7 +65,7 @@ export default function PublicForm({ formId }: { formId: string }) {
       if (ticket.version !== response.version) throw new Error("The form changed while loading. Reload the page.");
       if (active) setLoaded({ form: response.definition, engine, ticket: ticket.ticket });
     } catch (cause) { if (active) setError(message(cause)); }
-  })(); return () => { active = false; }; },[formId]);
+  })(); return () => { active = false; }; },[formId, previewDefinition]);
   if (!loaded) return <div className="forms-public" role="status">{error || "Loading form…"}</div>;
   const form = loaded.form; const values = normalized(form,answers);
   if (complete) return <div className="forms-public fs-complete" role="status"><span>✓</span><h2>Thank you</h2><p>{form.settings.confirmation}</p></div>;
@@ -79,7 +87,7 @@ export default function PublicForm({ formId }: { formId: string }) {
       event.preventDefault(); if (step < nonempty.length-1) { next(); return; }
       const checked = validateAnswers(form,inputValues); if (!checked.ok) { setErrors(checked.errors); const first = nonempty.findIndex(p => p.some(f => checked.errors[f.id])); if (first>=0) setStep(first); return; }
       setBusy(true); setError("");
-      try { await request(loaded.engine,"submit",{ formId,ticket:loaded.ticket,answers:inputValues,website:website.current ? website.current.value : "" }, z.object({ accepted: z.literal(true) })); setComplete(true); }
+      try { if (!previewDefinition) await request(loaded.engine,"submit",{ formId,ticket:loaded.ticket,answers:inputValues,website:website.current ? website.current.value : "" }, z.object({ accepted: z.literal(true) })); setComplete(true); }
       catch (cause) { setError(message(cause)); if (cause instanceof FormsError) setErrors(cause.fields); }
       finally { setBusy(false); }
     }}>

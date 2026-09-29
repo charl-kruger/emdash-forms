@@ -30,7 +30,7 @@ describe("forms across the sandbox boundary", () => {
     host = await createPluginTestHost();
     expect(await host.invokeRoute("create", { definition: { ...contact(), unsupported: true } })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
     const page = await host.invokeRoute("admin", { type: "page_load", page: "/" });
-    expect(page).toMatchObject({ blocks: [{ type: "header", text: "Forms" }, { type: "context" }, { type: "actions" }] });
+    expect(page).toMatchObject({ blocks: [{ type: "header", text: "Forms" }, { type: "empty", title: "Create your first form" }] });
     expect(await host.invokeRoute("admin", { type: "block_action", action_id: "create:contact" })).toMatchObject({ blocks: expect.arrayContaining([{ type: "header", text: "Get in touch" }]) });
     expect(await host.storage("forms").list()).toHaveLength(1);
   });

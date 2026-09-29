@@ -1,22 +1,32 @@
-// Development identity only. Configure verified publisher metadata before a release.
 {
   "$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
-  "slug": "forms-engine",
-  "publisher": "did:web:development.invalid",
+  "slug": "forms",
+  "publisher": "did:plc:zfm2t2bsxltpu44kc7g3eyn4",
   "license": "MIT",
+  "repo": "https://github.com/charl-kruger/emdash-forms",
   "author": {
-    "name": "Local development fixture"
+    "name": "Charl Kruger",
+    "url": "https://netdollar.dev"
   },
   "security": {
-    "url": "https://development.invalid/security"
+    "email": "security@netdollar.dev"
   },
-  "name": "Forms engine",
-  "description": "Sandboxed form definitions, submissions and agent tools. Local development build.",
+  "name": "Forms",
+  "description": "Contact forms, surveys and multi-step forms for EmDash with conditional logic, entry management, CSV export and email notifications.",
+  "keywords": ["forms", "contact form", "form builder", "surveys", "submissions"],
+  "sections": {
+    "description": "Build contact forms, surveys and multi-step applications from the EmDash admin. Add fields, choices, required rules, conditional logic and calculations. Publish when ready, collect responses with spam protection, get email notifications, and read, star, annotate or export responses as CSV. A dashboard widget shows what's new, and MCP tools let AI agents manage forms and responses.",
+    "installation": "1. Install Forms from the registry and open Plugins > Forms to create your first form.\n2. To show forms on your site, install the Forms Studio companion once per site (pnpm add @emdash-forms/ui, then run the installer shown on any form's Embed tab), then build and deploy.\n3. Insert the Form block in the content editor, or use <Form formId=\"...\" /> in an Astro template.\n\nEmail notifications need an email provider configured in EmDash.",
+    "faq": "Why is a companion package needed to show forms on pages?\nEmDash runs registry plugins in a secure sandbox that can't add HTML or scripts to your pages. Forms Studio renders your forms on the site. You install it once, and every form you publish then works without another deploy.\n\nCan I use my own front end?\nYes. Each form's Embed tab documents the JSON API: fetch the definition, request a ticket, and submit."
+  },
   "capabilities": [
     "email:send"
   ],
   "allowedHosts": [],
-  "admin": { "pages": [{ "path": "/forms", "label": "Forms", "icon": "notepad" }] },
+  "admin": {
+    "pages": [{ "path": "/forms", "label": "Forms", "icon": "notepad" }],
+    "widgets": [{ "id": "recent-responses", "title": "Form responses", "size": "half" }]
+  },
   "storage": {
     "forms": {
       "indexes": [
@@ -32,6 +42,10 @@
         [
           "formId",
           "createdAt"
+        ],
+        [
+          "formId",
+          "status"
         ]
       ]
     },

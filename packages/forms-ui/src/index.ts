@@ -1,23 +1,43 @@
-import { definePlugin, definePluginRoute } from "emdash";
-import type { PluginDescriptor, PortableTextBlockConfig } from "emdash";
+import { definePlugin } from "emdash";
+import type { PluginDefinition, PluginDescriptor, PortableTextBlockConfig } from "emdash";
+import engine, { routes as engineRoutes } from "@emdash-forms/engine/runtime";
 
-export interface FormsStudioOptions { engineId: string }
 const VERSION = "0.1.0";
+const entrypoint = "@emdash-forms/plugin";
 const blocks: PortableTextBlockConfig[] = [{
-  type: "studio-form", label: "Forms Studio", icon: "form", description: "Embed a published form",
-  fields: [{ type: "text_input", action_id: "formId", label: "Form ID", placeholder: "Copy the form ID from Forms Studio" }],
+  // Preserve the stored Portable Text block type from the previous installation.
+  type: "studio-form", label: "Form", icon: "form", description: "Embed a published form",
+  fields: [{ type: "text_input", action_id: "formId", label: "Form ID", placeholder: "Find the ID under Forms → Settings → Embed" }],
 }];
-function options(input: FormsStudioOptions): FormsStudioOptions {
-  if (!input || !/^[a-zA-Z][a-zA-Z0-9_-]{0,127}$/.test(input.engineId)) throw new Error("Forms Studio requires an explicit, valid engineId");
-  return { engineId: input.engineId };
+const storage: NonNullable<PluginDefinition["storage"]> = {
+  forms: { indexes: ["status", "updatedAt"] },
+  entries: { indexes: ["formId", "createdAt", "status", ["formId", "createdAt"], ["formId", "status"]] },
+  tickets: { indexes: ["expiresAt"] },
+};
+const pages = [{ path: "/forms", label: "Forms", icon: "notepad" }];
+
+/** One native plugin: storage, routes, visual admin, MCP and public rendering. */
+export function forms(): PluginDescriptor {
+  return { id: "forms", version: VERSION, format: "native", entrypoint,
+    adminEntry: `${entrypoint}/admin`, componentsEntry: `${entrypoint}/astro`,
+    adminPages: pages, portableTextBlocks: blocks, capabilities: ["email:send"] };
 }
-export function formsStudio(input: FormsStudioOptions): PluginDescriptor<FormsStudioOptions> {
-  return { id: "forms-studio", version: VERSION, format: "native", entrypoint: "@emdash-forms/ui", adminEntry: "@emdash-forms/ui/admin", componentsEntry: "@emdash-forms/ui/astro", options: options(input), adminPages: [{ path: "/forms", label: "Forms Studio", icon: "notepad" }], portableTextBlocks: blocks };
-}
-export function createPlugin(input: FormsStudioOptions) {
-  const config = options(input);
-  return definePlugin({ id: "forms-studio", version: VERSION,
-    admin: { entry: "@emdash-forms/ui/admin", pages: [{ path: "/forms", label: "Forms Studio", icon: "notepad" }], portableTextBlocks: blocks },
-    routes: { connection: definePluginRoute({ public: true, methods: ["GET"], request: { body: "none" }, handler: async () => ({ engineId: config.engineId, apiVersion: 1 }) }) },
+export function createPlugin() {
+  const routes: NonNullable<PluginDefinition["routes"]> = {};
+  for (const [name, route] of Object.entries(engineRoutes)) {
+    // Native context includes both parsed input and the scoped plugin services.
+    const { input: _input, handler, ...config } = route;
+    routes[name] = { ...config, handler: async ctx => handler({
+      input: ctx.input, request: { url: ctx.request.url, method: ctx.request.method, headers: Object.fromEntries(ctx.request.headers) },
+      requestMeta: ctx.requestMeta, user: ctx.user, ui: ctx.ui,
+    }, ctx) };
+  }
+  return definePlugin({ id: "forms", version: VERSION, storage, capabilities: ["email:send"],
+    routes, hooks: {
+      "plugin:activate": engine.hooks?.["plugin:activate"],
+      "plugin:deactivate": engine.hooks?.["plugin:deactivate"],
+      cron: engine.hooks?.cron,
+    }, mcp: engine.mcp,
+    admin: { entry: `${entrypoint}/admin`, pages, portableTextBlocks: blocks },
   });
 }

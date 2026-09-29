@@ -1,40 +1,44 @@
-import { z } from "zod";
+import { z } from "#zod";
 
+// zod/mini (via the "#zod" import alias, which the plugin CLI inlines) keeps the sandbox bundle within the registry's 128 KB per-file limit.
 export const API_VERSION = 1 as const;
-export const ENGINE_ID = "forms-engine";
-export const idSchema = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/).refine(value => !Object.hasOwn(Object.prototype, value), "Reserved identifier");
-const text = z.string().max(2000);
-export const answerSchema = z.union([z.string().max(100_000), z.number().finite(), z.boolean(), z.array(z.string().max(200)).max(100)]);
+export const ENGINE_ID = "forms";
+const max = (n: number) => z.string().check(z.maxLength(n));
+const bounded = (min: number, maxLen: number) => z.string().check(z.minLength(min), z.maxLength(maxLen));
+const int = (min: number, maxValue?: number) => maxValue === undefined ? z.int().check(z.gte(min)) : z.int().check(z.gte(min), z.lte(maxValue));
+export const idSchema = z.string().check(z.regex(/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/), z.refine(value => !Object.hasOwn(Object.prototype, value), "Reserved identifier"));
+const text = max(2000);
+export const answerSchema = z.union([max(100_000), z.number(), z.boolean(), z.array(max(200)).check(z.maxLength(100))]);
 export type Answer = z.infer<typeof answerSchema>;
 export type Answers = Record<string, Answer>;
-export const ruleSchema = z.object({ field: idSchema, operator: z.enum(["equals", "not-equals", "contains", "filled", "empty"]), value: z.string().max(200) }).strict();
+export const ruleSchema = z.strictObject({ field: idSchema, operator: z.enum(["equals", "not-equals", "contains", "filled", "empty"]), value: max(200) });
 const base = {
-  id: idSchema, label: z.string().min(1).max(200), description: text,
+  id: idSchema, label: bounded(1, 200), description: text,
   required: z.boolean(), width: z.enum(["full", "half"]),
-  condition: z.object({ mode: z.enum(["all", "any"]), rules: z.array(ruleSchema).min(1).max(20) }).strict().nullable(),
+  condition: z.nullable(z.strictObject({ mode: z.enum(["all", "any"]), rules: z.array(ruleSchema).check(z.minLength(1), z.maxLength(20)) })),
 };
-const option = z.object({ label: z.string().min(1).max(200), value: z.string().min(1).max(200) }).strict();
+const option = z.strictObject({ label: bounded(1, 200), value: bounded(1, 200) });
 export const fieldSchema = z.discriminatedUnion("type", [
-  z.object({ ...base, type: z.enum(["text", "textarea", "email", "tel", "url", "date"]), placeholder: z.string().max(200), maxLength: z.number().int().min(1).max(10_000) }).strict(),
-  z.object({ ...base, type: z.enum(["number", "rating", "nps"]), min: z.number().finite(), max: z.number().finite(), step: z.number().positive().finite() }).strict(),
-  z.object({ ...base, type: z.enum(["select", "radio", "checkboxes"]), options: z.array(option).min(1).max(100) }).strict(),
-  z.object({ ...base, type: z.literal("consent") }).strict(),
-  z.object({ ...base, type: z.literal("signature") }).strict(),
-  z.object({ ...base, type: z.literal("calculation"), operation: z.enum(["sum", "product", "average"]), fields: z.array(idSchema).min(1).max(30), decimals: z.number().int().min(0).max(6) }).strict(),
-  z.object({ ...base, type: z.enum(["section", "page"]) }).strict(),
+  z.strictObject({ ...base, type: z.enum(["text", "textarea", "email", "tel", "url", "date"]), placeholder: max(200), maxLength: int(1, 10_000) }),
+  z.strictObject({ ...base, type: z.enum(["number", "rating", "nps"]), min: z.number(), max: z.number(), step: z.number().check(z.positive()) }),
+  z.strictObject({ ...base, type: z.enum(["select", "radio", "checkboxes"]), options: z.array(option).check(z.minLength(1), z.maxLength(100)) }),
+  z.strictObject({ ...base, type: z.literal("consent") }),
+  z.strictObject({ ...base, type: z.literal("signature") }),
+  z.strictObject({ ...base, type: z.literal("calculation"), operation: z.enum(["sum", "product", "average"]), fields: z.array(idSchema).check(z.minLength(1), z.maxLength(30)), decimals: int(0, 6) }),
+  z.strictObject({ ...base, type: z.enum(["section", "page"]) }),
 ]);
 export type Field = z.infer<typeof fieldSchema>;
 export type FieldType = Field["type"];
-export const definitionSchema = z.object({
-  schemaVersion: z.literal(1), title: z.string().min(1).max(200), description: text,
-  fields: z.array(fieldSchema).min(1).max(100),
-  settings: z.object({
-    submitLabel: z.string().min(1).max(80), confirmation: z.string().min(1).max(2000),
-    notifications: z.array(z.email()).max(5),
-    opensAt: z.iso.datetime().nullable(), closesAt: z.iso.datetime().nullable(),
+export const definitionSchema = z.strictObject({
+  schemaVersion: z.literal(1), title: bounded(1, 200), description: text,
+  fields: z.array(fieldSchema).check(z.minLength(1), z.maxLength(100)),
+  settings: z.strictObject({
+    submitLabel: bounded(1, 80), confirmation: bounded(1, 2000),
+    notifications: z.array(z.email()).check(z.maxLength(5)),
+    opensAt: z.nullable(z.iso.datetime()), closesAt: z.nullable(z.iso.datetime()),
     mode: z.enum(["standard", "conversational"]),
-  }).strict(),
-}).strict().superRefine((form, ctx) => {
+  }),
+}).check(z.superRefine((form, ctx) => {
   if (new TextEncoder().encode(JSON.stringify(form)).byteLength > 48_000) ctx.addIssue({ code: "custom", message: "Form definition exceeds 48 KB", path: [] });
   const ids = new Set<string>();
   const numbers = new Set<string>();
@@ -53,29 +57,30 @@ export const definitionSchema = z.object({
   }
   if (!form.fields.some(f => !["page", "section", "calculation"].includes(f.type))) ctx.addIssue({ code: "custom", message: "Add at least one input field", path: ["fields"] });
   if (form.settings.opensAt && form.settings.closesAt && form.settings.opensAt >= form.settings.closesAt) ctx.addIssue({ code: "custom", message: "Closing time must follow opening time", path: ["settings", "closesAt"] });
-});
+}));
 export type FormDefinition = z.infer<typeof definitionSchema>;
-export const formRecordSchema = z.object({
-  draft: definitionSchema, published: definitionSchema.nullable(), publishedVersion: z.number().int().nonnegative(),
+export const formRecordSchema = z.strictObject({
+  draft: definitionSchema, published: z.nullable(definitionSchema), publishedVersion: int(0),
   status: z.enum(["draft", "published", "paused"]), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
-}).strict();
+});
 export type FormRecord = z.infer<typeof formRecordSchema>;
-export const entrySchema = z.object({
-  formId: idSchema, formVersion: z.number().int().positive(), title: z.string(),
+export const entrySchema = z.strictObject({
+  formId: idSchema, formVersion: int(1), title: z.string(),
   answers: z.record(z.string(), answerSchema), fields: z.array(fieldSchema), createdAt: z.iso.datetime(),
-  status: z.enum(["new", "read", "archived"]), starred: z.boolean(), notes: z.string().max(5000),
+  status: z.enum(["new", "read", "archived"]), starred: z.boolean(), notes: max(5000),
   receiptHash: z.string(), notification: z.enum(["not-requested", "pending", "sent", "failed"]),
-}).strict();
+});
 export type Entry = z.infer<typeof entrySchema>;
-export const formIdInput = z.object({ id: idSchema }).strict();
-export const listInput = z.object({ cursor: z.string().optional() }).strict();
-export const createInput = z.object({ definition: definitionSchema }).strict();
-export const saveInput = z.object({ id: idSchema, revision: z.string().min(1), definition: definitionSchema }).strict();
-export const versionInput = z.object({ id: idSchema, revision: z.string().min(1) }).strict();
-export const entriesInput = z.object({ formId: idSchema, cursor: z.string().optional() }).strict();
-export const entryUpdateInput = z.object({ id: idSchema, revision: z.string().min(1), status: z.enum(["new", "read", "archived"]), starred: z.boolean(), notes: z.string().max(5000) }).strict();
-export const submitInput = z.object({ formId: idSchema, ticket: idSchema, answers: z.record(idSchema, answerSchema), website: z.string().max(1000) }).strict();
-export const ticketSchema = z.object({ formId: idSchema, version: z.number().int(), issuedAt: z.number(), expiresAt: z.number() }).strict();
+const revision = bounded(1, 1000);
+export const formIdInput = z.strictObject({ id: idSchema });
+export const listInput = z.strictObject({ cursor: z.optional(z.string()) });
+export const createInput = z.strictObject({ definition: definitionSchema });
+export const saveInput = z.strictObject({ id: idSchema, revision, definition: definitionSchema });
+export const versionInput = z.strictObject({ id: idSchema, revision });
+export const entriesInput = z.strictObject({ formId: idSchema, cursor: z.optional(z.string()) });
+export const entryUpdateInput = z.strictObject({ id: idSchema, revision, status: z.enum(["new", "read", "archived"]), starred: z.boolean(), notes: max(5000) });
+export const submitInput = z.strictObject({ formId: idSchema, ticket: idSchema, answers: z.record(idSchema, answerSchema), website: max(1000) });
+export const ticketSchema = z.strictObject({ formId: idSchema, version: z.int(), issuedAt: z.number(), expiresAt: z.number() });
 
 export function visible(field: Field, answers: Answers): boolean {
   if (!field.condition) return true;
@@ -102,6 +107,8 @@ export function calculated(field: Extract<Field, { type: "calculation" }>, answe
   return Number(value.toFixed(field.decimals));
 }
 
+const emailCheck = z.email();
+const urlCheck = z.url({ protocol: /^https?$/ });
 export function validateAnswers(form: FormDefinition, input: Answers): { ok: true; answers: Answers } | { ok: false; errors: Record<string, string> } {
   const answers: Answers = {};
   const errors: Record<string,string> = {};
@@ -134,8 +141,8 @@ export function validateAnswers(form: FormDefinition, input: Answers): { ok: tru
       if (typeof value !== "string" || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(value) || value.length > 100_000) errors[field.id] = "Draw a valid signature";
     } else if ("maxLength" in field) {
       if (typeof value !== "string" || value.length > field.maxLength) errors[field.id] = `Enter text up to ${field.maxLength} characters`;
-      else if (field.type === "email" && !z.email().safeParse(value).success) errors[field.id] = "Enter a valid email address";
-      else if (field.type === "url" && !z.url({ protocol: /^https?$/ }).safeParse(value).success) errors[field.id] = "Enter an HTTP or HTTPS URL";
+      else if (field.type === "email" && !emailCheck.safeParse(value).success) errors[field.id] = "Enter a valid email address";
+      else if (field.type === "url" && !urlCheck.safeParse(value).success) errors[field.id] = "Enter an HTTP or HTTPS URL";
       else if (field.type === "date" && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value)) || new Date(value).toISOString().slice(0,10) !== value)) errors[field.id] = "Enter a valid date";
     }
     if (!errors[field.id]) answers[field.id] = value;
@@ -149,4 +156,16 @@ export function publicDefinition(form: FormDefinition): FormDefinition {
 export function csvCell(value: string): string {
   const safe = /^[\s]*[=+@\-\t\r]/.test(value) ? `'${value}` : value;
   return `"${safe.replaceAll('"', '""')}"`;
+}
+
+/** Human-readable answer text for emails, exports and the admin. */
+export function answerText(field: Field, value: Answer | undefined): string {
+  if (value === undefined || value === "") return "";
+  if (field.type === "signature") return "Signature captured";
+  if (field.type === "consent") return value === true ? "Yes" : "No";
+  if ("options" in field) {
+    const label = (v: string) => field.options.find(o => o.value === v)?.label ?? v;
+    return Array.isArray(value) ? value.map(label).join(", ") : label(String(value));
+  }
+  return Array.isArray(value) ? value.join(", ") : String(value);
 }

@@ -1,5 +1,9 @@
 # Forms architecture: one installation, two execution boundaries
 
+> **Current decision — 29 September 2026:** Forms is now one trusted native plugin, `@emdash-forms/plugin`, registered once as `forms()`. It bundles the private engine, React builder and Astro renderer. The split-plugin/registry architecture below is historical, not installation guidance. See the root README and `docs/combined-plugin.md` for the current design and verification.
+
+> **Superseded (29 September 2026):** the companion no longer has its own admin, React builder or json-render views. All management happens in the registry plugin's Block Kit admin, and the companion only renders forms on the site. See [embedding.md](embedding.md).
+
 Date: 2026-09-28. Status: implementation in progress; see forms-registry-analysis.md for the registry decision and remaining verification.
 
 ## Decision

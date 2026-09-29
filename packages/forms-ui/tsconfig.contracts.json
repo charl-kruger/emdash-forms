@@ -1,0 +1,5 @@
+{
+  "extends": "../forms-engine/tsconfig.json",
+  "compilerOptions": { "declaration": true, "emitDeclarationOnly": true, "noEmit": false, "outDir": "dist", "rootDir": "../forms-engine/src" },
+  "include": ["../forms-engine/src/schema.ts", "../forms-engine/src/templates.ts"]
+}
