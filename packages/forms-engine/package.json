@@ -13,7 +13,6 @@
       "types": "./dist/index.d.mts"
     },
     "./sandbox": "./dist/plugin.mjs",
-    "./runtime": "./src/plugin.ts",
     "./schema": "./src/schema.ts",
     "./templates": "./src/templates.ts"
   },

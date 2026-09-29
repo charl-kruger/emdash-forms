@@ -1,16 +1,12 @@
-# Forms engine for EmDash
-
-> **Current decision — 29 September 2026:** Forms is now one trusted native plugin, `@emdash-forms/plugin`, registered once as `forms()`. It bundles the private engine, React builder and Astro renderer. The split-plugin/registry architecture below is historical, not installation guidance. See the root README and `docs/combined-plugin.md` for the current design and verification.
+# Forms for EmDash (`@netdollar.dev/forms`)
 
 Development release 0.1.0, tested with EmDash 1.0.1. This is an original TypeScript implementation, not the PHP WPForms plugin. It does not yet provide complete WPForms premium parity.
 
-## Registry and native installation
+## Installation
 
-The engine is a sandboxed registry-format bundle. It includes Block Kit management, typed API routes, MCP tools, form definitions and entry storage. Registry users can create templates, edit JSON definitions, publish/pause and inspect responses.
+This is the sandboxed plugin published to the EmDash registry. It has the admin (Block Kit), typed API routes, MCP tools, form definitions and response storage.
 
-The `@emdash-forms/ui` companion renders forms on the site: the Form content block, the `<Form>` Astro component and `/forms/<id>`. It requires a site build and deployment and can't be installed through the sandbox registry. All form management happens in this plugin's admin.
-
-The local workspace registers the CLI-generated engine descriptor and companion in `astro.config.mjs`. The engine runs through the Cloudflare sandbox runner. This is a local configuration installation, not proof of a public registry release.
+To show forms on a site, add the `@netdollar/emdash-forms` site package once (see [its README](../forms-ui/README.md)). It provides the Form content block, the `<Form>` Astro component and `/forms/<id>`, and connects to this plugin's registry ID (`r_yi3qllvcosfhr4ld`) by default.
 
 ## Implemented
 

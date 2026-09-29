@@ -25,6 +25,8 @@ type Operations = Record<OperationName, Exclude<RouteEntry, (...args: never[]) =
 type FormFieldElement = Extract<Block, { type: "form" }>["fields"][number];
 type Loaded = z.infer<typeof formResult>;
 
+/** Plugin ID EmDash assigns to @netdollar.dev/forms installed from the registry. */
+const REGISTRY_ID = "r_yi3qllvcosfhr4ld";
 const TABS = { fields: 0, settings: 1, responses: 2, embed: 3, advanced: 4 } as const;
 type Tab = keyof typeof TABS;
 
@@ -185,16 +187,18 @@ export function adminRoute(operations: Operations): RouteEntry {
 
       // Embed tab
       const engine = ctx.plugin.id;
+      // The site package defaults to this plugin's registry ID; other installs pass it explicitly.
+      const installFlag = engine === REGISTRY_ID ? "" : ` --engine-id ${engine}`;
       const embedPanel: Block[] = [
         ...(record.published ? [] : [{ type: "banner" as const, variant: "alert" as const, title: "Publish first", description: "Embedded forms only appear once the form is published." }]),
         { type: "fields", fields: [{ label: "Form ID", value: id }, { label: "Plugin ID", value: engine }] },
         { type: "section", text: "In the content editor: insert a “Form” block into any page or post and enter the form ID above." },
         { type: "section", text: "In an Astro template or layout:" },
-        { type: "code", language: "tsx", code: `---\nimport Form from "@emdash-forms/ui/Form";\n---\n<Form formId="${id}" />` },
-        { type: "section", text: "As its own page: once Forms Studio is installed, every published form is also available at /forms/" + id },
-        { type: "accordion", label: "One-time setup: add Forms Studio to your site", blocks: [
-          { type: "context", text: "EmDash runs registry plugins in a secure sandbox that can’t add HTML or scripts to your pages. Forms Studio is a small companion package that renders your forms on the site. Install it once; every form you publish here then works everywhere." },
-          { type: "code", language: "bash", code: `pnpm add @emdash-forms/ui\npnpm exec emdash-forms --engine-id ${engine}          # preview the changes\npnpm exec emdash-forms --engine-id ${engine} --apply  # apply them` },
+        { type: "code", language: "tsx", code: `---\nimport Form from "@netdollar/emdash-forms/Form";\n---\n<Form formId="${id}" />` },
+        { type: "section", text: `As its own page: every published form is also available at /forms/${id}` },
+        { type: "accordion", label: "One-time setup: add the site package", default_open: !record.published, blocks: [
+          { type: "context", text: "EmDash runs registry plugins in a secure sandbox that can’t add HTML or scripts to your pages, so forms are shown by a small site package. Install it once; every form you publish here then works without another deploy." },
+          { type: "code", language: "bash", code: `pnpm add @netdollar/emdash-forms\npnpm exec emdash-forms${installFlag}          # preview the changes\npnpm exec emdash-forms${installFlag} --apply  # apply them` },
           { type: "context", text: "Then build and deploy your site as usual." },
         ] },
         { type: "accordion", label: "Use your own front end (JSON API)", blocks: [

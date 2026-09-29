@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "forms:build": "pnpm --filter @emdash-forms/engine build && pnpm --filter @emdash-forms/plugin build",
-    "forms:test": "pnpm --filter @emdash-forms/plugin build && pnpm --filter @emdash-forms/plugin test && pnpm --filter @emdash-forms/engine test",
-    "forms:check": "pnpm --filter @emdash-forms/engine typecheck && pnpm --filter @emdash-forms/plugin typecheck"
+    "forms:build": "pnpm --filter @emdash-forms/engine build && pnpm --filter @netdollar/emdash-forms build",
+    "forms:test": "pnpm --filter @netdollar/emdash-forms build && pnpm --filter @netdollar/emdash-forms test && pnpm --filter @emdash-forms/engine test",
+    "forms:check": "pnpm --filter @emdash-forms/engine typecheck && pnpm --filter @netdollar/emdash-forms typecheck"
   }
 }

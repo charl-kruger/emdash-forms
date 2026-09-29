@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { API_VERSION } from "@emdash-forms/plugin/schema";
+import { API_VERSION } from "@emdash-forms/engine/schema";
 
 const envelope = z.object({ success: z.boolean(), data: z.unknown().optional(), error: z.unknown().optional() });
 const failure = z.object({ ok: z.literal(false), code: z.string(), message: z.string(), fields: z.record(z.string(), z.string()).optional(), issues: z.array(z.object({ path: z.string(), message: z.string() })).optional() });
@@ -12,9 +12,11 @@ async function body(response: Response): Promise<unknown> {
   if (!value.success) throw new FormsError("The server could not complete this request", "HOST_ERROR");
   return value.data;
 }
+/** Ask the add-on which Forms plugin to talk to, then confirm its API version. */
 export async function connect(): Promise<string> {
-  await request("forms", "info", {}, z.object({ ok: z.literal(true), apiVersion: z.literal(API_VERSION), engineId: z.literal("forms") }), true);
-  return "forms";
+  const config = z.object({ engineId: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]{0,127}$/), apiVersion: z.literal(API_VERSION) }).parse(await body(await fetch("/_emdash/api/plugins/forms-embed/connection", { credentials: "same-origin" })));
+  await request(config.engineId, "info", {}, z.object({ ok: z.literal(true), apiVersion: z.literal(API_VERSION) }).passthrough(), true);
+  return config.engineId;
 }
 export type Operation = "info" | "list" | "get" | "create" | "save" | "publish" | "pause" | "resume" | "delete" | "definition" | "ticket" | "submit" | "entries" | "entry" | "entry-update" | "entry-delete" | "export";
 export async function request<T>(engine: string, route: Operation, input: Record<string, unknown>, schema: z.ZodType<T>, get = false): Promise<T> {
@@ -26,10 +28,3 @@ export async function request<T>(engine: string, route: Operation, input: Record
   return schema.parse(value);
 }
 export function message(error: unknown): string { return error instanceof Error ? error.message : String(error); }
-
-export function download(name: string, content: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const link = document.createElement("a");
-  link.href = url; link.download = name; link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

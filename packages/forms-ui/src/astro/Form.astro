@@ -1,8 +1,9 @@
 ---
-import PublicForm from "../PublicForm";
+import PublicForm from "../../dist/PublicForm.js";
+import "../styles.css";
 interface Props { formId?: string; node?: { formId: string } }
 const formId = Astro.props.formId !== undefined ? Astro.props.formId : Astro.props.node?.formId;
-if (!formId || !/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(formId)) throw new Error("Forms Studio requires a valid form ID");
+if (!formId || !/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(formId)) throw new Error("EmDash Forms requires a valid form ID");
 ---
 <PublicForm formId={formId} client:load />
 <noscript>This form requires JavaScript to validate and submit your response.</noscript>

@@ -1,42 +1,54 @@
 {
-  "name": "@emdash-forms/plugin",
+  "name": "@netdollar/emdash-forms",
   "version": "0.1.0",
-  "private": true,
+  "description": "Show EmDash Forms on your site: the Form content block, <Form> Astro component and /forms/<id> pages.",
+  "license": "MIT",
+  "author": "Charl Kruger (https://netdollar.dev)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/charl-kruger/emdash-forms.git",
+    "directory": "packages/forms-ui"
+  },
+  "homepage": "https://github.com/charl-kruger/emdash-forms#readme",
+  "keywords": [
+    "emdash",
+    "emdash-plugin",
+    "astro",
+    "forms",
+    "contact-form"
+  ],
   "type": "module",
-  "imports": { "#zod": "zod/mini" },
   "files": [
     "dist",
-    "src",
-    "bin",
+    "src/astro",
+    "src/styles.css",
     "bin-dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./astro": "./src/astro/index.ts",
-    "./Form": "./src/astro/Form.astro",
-    "./admin": "./src/admin.tsx",
-    "./schema": {
-      "types": "./dist/schema.d.ts",
-      "import": "./dist/schema.js"
-    },
-    "./templates": {
-      "types": "./dist/templates.d.ts",
-      "import": "./dist/templates.js"
-    }
+    "./astro": "./src/astro/index.js",
+    "./Form": "./src/astro/Form.astro"
+  },
+  "bin": {
+    "emdash-forms": "./bin-dist/setup.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.contracts.json && tsc -p tsconfig.build.json && node build.mjs && tsc -p tsconfig.bin.json",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && node build.mjs && tsc -p tsconfig.bin.json",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "prepack": "pnpm build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "zod": "4.5.4",
-    "typescript": "5.9.3",
-    "@cloudflare/kumo": "2.6.0"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "emdash": "^1.0.0",
@@ -45,14 +57,10 @@
     "astro": "^7.2.0"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
     "@types/react": "^19.0.0",
     "astro": "7.3.5",
     "@types/node": "26.6.3",
     "@emdash-forms/engine": "workspace:*",
     "esbuild": "^0.25.0"
-  },
-  "bin": {
-    "emdash-forms": "./bin-dist/setup.js"
   }
 }

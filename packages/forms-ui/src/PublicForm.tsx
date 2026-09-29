@@ -1,10 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { z } from "zod";
-import { calculated, definitionSchema, visible, validateAnswers } from "@emdash-forms/plugin/schema";
-import type { Answer, Answers, Field, FormDefinition } from "@emdash-forms/plugin/schema";
+import { calculated, definitionSchema, visible, validateAnswers } from "@emdash-forms/engine/schema";
+import type { Answer, Answers, Field, FormDefinition } from "@emdash-forms/engine/schema";
 import { connect, FormsError, message, request } from "./client";
-import "./styles.css";
 
 function Signature({ value, onChange, id }: { value: Answer | undefined; onChange: (value: Answer) => void; id: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -40,17 +39,6 @@ function normalized(form: FormDefinition, input: Answers): Answers {
     else { const value = input[field.id]; if (value !== undefined) result[field.id] = value; }
   }
   return result;
-}
-export function FormPreview({ definition }: { definition: FormDefinition }) {
-  const [viewport, setViewport] = useState("desktop");
-  const [session, setSession] = useState(0);
-  return <section className="fs-preview" aria-label="Interactive form preview">
-    <div className="fs-preview-toolbar"><div role="group" aria-label="Preview size">
-      {["desktop", "mobile"].map(size => <button type="button" key={size} aria-pressed={viewport === size} className="fs-secondary" onClick={() => setViewport(size)}>{size === "desktop" ? "Desktop" : "Mobile"}</button>)}
-    </div><button type="button" className="fs-text-button" onClick={() => setSession(s => s + 1)}>Reset preview</button></div>
-    <p className="fs-muted">Try your form. Validation, calculations and conditions are live. No responses are saved or emails sent.</p>
-    <div className={`fs-preview-device fs-preview-${viewport}`}><PublicForm key={session} formId="preview" previewDefinition={definition} /></div>
-  </section>;
 }
 export default function PublicForm({ formId, previewDefinition }: { formId: string; previewDefinition?: FormDefinition }) {
   const [loaded, setLoaded] = useState<{ form: FormDefinition; engine: string; ticket: string }>();
@@ -95,5 +83,5 @@ export default function PublicForm({ formId, previewDefinition }: { formId: stri
       <div className="fs-grid">{current.map(f => <FieldInput key={f.id} field={f} value={values[f.id]} error={errors[f.id]} onChange={v => setAnswers(previous => ({ ...previous,[f.id]:v }))} />)}</div>
       {error && <p className="fs-error" role="alert">{error}</p>}
       <div className="fs-form-actions">{step>0 && <button type="button" disabled={busy} className="fs-secondary" onClick={() => setStep(step-1)}>Back</button>}<button className="fs-primary" type="submit" disabled={busy}>{busy ? "Submitting…" : step<nonempty.length-1 ? "Continue →" : form.settings.submitLabel}</button></div>
-    </form><p className="fs-powered">Made with Forms Studio</p></div>;
+    </form><p className="fs-powered">Powered by EmDash Forms</p></div>;
 }
